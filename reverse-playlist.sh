@@ -68,9 +68,9 @@ usage() {
 	echo "This script reverses the tracks in a playlist."
 	echo "The only required parameter is playlist-id."
 	echo "Per default a playlist in your account is then used."
-	echo ""
 	echo "If you want to use a playlist of another user then the parameter playlist-userid is needed."
-	echo "Then a new playlist (with the tracks reversed) will be created in your account"
+	echo ""
+	echo "A new playlist (with the tracks reversed) will be created in your account"
 	echo "For the new playlist the default name/description is:"
 	echo "name: '<current-name> reversed'"
 	echo "description: '<current-description> (reversed)'"
@@ -253,31 +253,14 @@ echo ""
 echo "#tracks_reversed: $(wc -w <<< ${tracks_reversed})"
 
 #
-# check if we:
-#	- reverse a playlist of our own: empty the current playlist (and add the reversed tracks)
-# 	- reverse a playlist of another user: create a new playlist (and add the reversed tracks)
+# create a new playlist
 #
-if [[ "${reversing_own_playlist}" == "true" ]]
-then
-	destination_playlist_id="${source_playlist_id}"
-	#
-	# empty the current playlist (and add the reversed tracks)
-	#
-	body="$(jq --null-input '{uris:[]}' )"
-	response=$(curl ${CURL_OPTIONS} --request PUT "${SPOTIFY_API_BASE_URL}/users/${current_spotify_user}/playlists/${source_playlist_id}/tracks" --header "${SPOTIFY_ACCEPT_HEADER}" --header "${spotify_authorization_header}" --header "${SPOTIFY_CONTENT_TYPE_HEADER}" --data "${body}")
-	checkForErrorInResponse "${response}"
-	destination_playlist_url="${source_playlist_url}"
-else
-	#
-	# create a new playlist
-	#
-	body=$(jq --null-input --arg name "${destination_playlist_name}" --arg description "${destination_playlist_description}" '{name:$name, description:$description, public:true}')
-	response=$(curl ${CURL_OPTIONS} --request POST "${SPOTIFY_API_BASE_URL}/users/${current_spotify_user}/playlists" --header "${SPOTIFY_ACCEPT_HEADER}" --header "${spotify_authorization_header}" --header "${SPOTIFY_CONTENT_TYPE_HEADER}" --data "${body}")
-	checkForErrorInResponse "${response}"
-	destination_playlist_id=$(echo ${response} | jq -r '.id')
-	destination_playlist_url=$(echo ${response} | jq -r '.external_urls.spotify')
-	echo "Created a new playlist"
-fi
+body=$(jq --null-input --arg name "${destination_playlist_name}" --arg description "${destination_playlist_description}" '{name:$name, description:$description, public:true}')
+response=$(curl ${CURL_OPTIONS} --request POST "${SPOTIFY_API_BASE_URL}/users/${current_spotify_user}/playlists" --header "${SPOTIFY_ACCEPT_HEADER}" --header "${spotify_authorization_header}" --header "${SPOTIFY_CONTENT_TYPE_HEADER}" --data "${body}")
+checkForErrorInResponse "${response}"
+destination_playlist_id=$(echo ${response} | jq -r '.id')
+destination_playlist_url=$(echo ${response} | jq -r '.external_urls.spotify')
+echo "Created a new playlist"
 
 #
 # add all the tracks to the (new) playlist (max 100 per request)
